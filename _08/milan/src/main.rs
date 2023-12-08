@@ -58,6 +58,6 @@ fn main() {
 
 fn lcm_rec(x: &Vec<usize>) -> usize {
     if x.len() == 2 { return lcm(x[0], x[1]) }
-    let y = &x[0];
-    lcm(lcm_rec(&Vec::from(&x[1..])), *y)
+    let y = x[0];
+    lcm(lcm_rec(&Vec::from(&x[1..])), y)
 }
