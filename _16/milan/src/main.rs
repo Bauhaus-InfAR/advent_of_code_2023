@@ -8,75 +8,76 @@ fn main() {
     let grid = contents.lines().map(|l| l
         .chars().collect::<Vec<_>>()
     ).collect::<Vec<_>>();
-    let mut paths: Vec<(char, [isize; 2])> = vec![];
-    trace(&[0, 0], &grid, 'e', &mut paths);
-    let mut task1 = 0;
-    for i in 0..grid.len() {
-        for j in 0..grid[0].len() {
-            if paths.iter().any(|p| p.1 == [i as isize, j as isize]) {
-                task1 += 1;
-            }
-        }
-    }    
+    let mut all_n_energised: Vec<usize> = vec![];
+
+    let nrows = grid.len() - 1;
+    let ncols = grid[0].len() - 1;
+    for i in 0..nrows {
+        let row = i as isize;
+        let mut n_energised: usize = 0;
+        let mut visited: Vec<[isize; 2]> = vec![];
+        let mut paths: Vec<([isize; 2], [isize; 2])> = vec![];
+        trace(&[row, 0], &grid, &[0, 1], &mut paths, &mut visited, &mut n_energised);
+        all_n_energised.push(n_energised);
+        n_energised = 0;
+        paths = vec![];
+        visited = vec![];
+        trace(&[row, ncols as isize], &grid, &[0, -1], &mut paths, &mut visited, &mut n_energised);
+        all_n_energised.push(n_energised);
+    }
+
+    for i in 0..ncols {
+        let col = i as isize;
+        let mut n_energised: usize = 0;
+        let mut paths: Vec<([isize; 2], [isize; 2])> = vec![];
+        let mut visited: Vec<[isize; 2]> = vec![];
+        trace(&[0, col], &grid, &[1, 0], &mut paths, &mut visited, &mut n_energised);
+        all_n_energised.push(n_energised);
+        n_energised = 0;
+        paths = vec![];
+        visited = vec![];
+        trace(&[nrows as isize, col], &grid, &[-1, 0], &mut paths, &mut visited, &mut n_energised);
+        all_n_energised.push(n_energised);
+    }
+    
+    let task1 = all_n_energised[0];
     println!("Task 1: {}", task1);
+    let task2 = all_n_energised.iter().max().unwrap();
+    println!("Task 2: {}", task2);
+
 }
 
-fn trace(coord: &[isize; 2], data: &Vec<Vec<char>>, mut direction: char, path: &mut Vec<(char, [isize; 2])>) -> () {
-    let mut x = coord[0].clone();
-    let mut y = coord[1].clone();
+fn trace(coord: &[isize; 2], data: &Vec<Vec<char>>, direction: &[isize; 2], path: &mut Vec<([isize; 2], [isize; 2])>, visited: &mut Vec<[isize; 2]>, n_energised: &mut usize) -> () {
+    let [mut r, mut c] = coord;
+    let [mut dr, mut dc] = direction;
     
     let height = data.len() as isize;
     let width = data[0].len() as isize;
     
     loop {
-        if !(x >= 0 && x < width && y >= 0 && y < height) {
+        if !(r >= 0 && r < width && c >= 0 && c < height) {
             break;}
-        let this_step = (direction, [x, y]);
+        let this_step = ([r, c], [dr, dc]);
         if path.contains(&this_step) {break}
+        if !visited.contains(&this_step.0) {
+            *n_energised += 1;
+            visited.push(this_step.0.clone());
+        };
         path.push(this_step);
 
-        let current_char = data[x as usize][y as usize];
-        match current_char {
-            '-' => match direction {
-                    'n' | 's' => {
-                        trace(&[x.clone(), y.clone() + 1], data, 'e', path);
-                        trace(&[x.clone(), y.clone() - 1], data, 'w', path);
-                        break;
-                    },
-                    _ => {}
-                },
-            '|' => match direction {
-                'e' | 'w' => {
-                    trace(&[x.clone() + 1, y.clone()], data, 's', path);
-                    trace(&[x.clone() - 1, y.clone()], data, 'n', path);
-                    break;
+        let current_char = data[r as usize][c as usize];
 
-                },
-                _ => {}
-            },
-            '/' => {
-                direction = match direction {
-                    'n' => {'e'},
-                    'e' => {'n'},
-                    's' => {'w'},
-                    _ => {'s'}
-                }
-            },
-            '\\' => {
-                direction = match direction {
-                    'n' => {'w'},
-                    'e' => {'s'},
-                    's' => {'e'},
-                    _ => {'n'}
-                }
-            },
-            _ => {}
-        };
-        [x, y] = match direction {
-            'n' => [x - 1, y],
-            'e' => [x, y + 1],
-            's' => [x + 1, y],
-            _ => [x, y - 1]
-        };
+        if (current_char == '-' && dr == 0) || (current_char == '|' && dc == 0) || current_char == '.' {
+        } else if current_char == '/' {
+            (dr, dc) = (-dc, -dr);
+        } else if current_char == '\\' {
+            (dr, dc) = (dc, dr);
+        } else {
+            trace(&[r.clone() + dc.clone(), c.clone() + dr.clone()], data, &[dc.clone(), dr.clone()], path, visited, n_energised);
+            trace(&[r.clone() - dc.clone(), c.clone() - dr.clone()], data, &[-dc.clone(), -dr.clone()], path, visited, n_energised);
+            break;
+        }
+        r += dr;
+        c += dc;
     }
 }
